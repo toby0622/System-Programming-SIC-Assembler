@@ -3,7 +3,7 @@
 #include <string.h>
 #include <math.h>
 
-#define cMIN -1
+#define cMIN (-1)
 #define cLOAD 0
 #define cSHOW 1
 #define cUNLOAD 2
@@ -29,7 +29,7 @@ int op = 0;
 int indexed = 0;
 int operand = 0;
 int running = 0;
-char filename[100];
+char filename[100] = {};
 
 int reg_A, reg_X, reg_L, reg_PC, reg_SW;
 
@@ -249,7 +249,8 @@ void s_unload() { // release all data structures
     indexed = 0;
     operand = 0;
     running = 0;
-    filename[100];
+
+    memset(filename, '\0', sizeof(filename));
 }
 
 void init_run() {
@@ -293,11 +294,20 @@ int get_value(int r, int x) {
     int tmp = 0;
     char s[7];
     int i, j;
-    if (x) r += reg_X;
+
+    if (x) {
+        r += reg_X;
+    }
+
     i = (r - start_add) * 2;
-    for (j=0; j<6; j++) s[j] = memory[i++];
+
+    for (j = 0; j < 6; j++) {
+        s[j] = memory[i++];
+    }
+
     s[6] = '\0';
     sscanf(s, "%X", &tmp);
+
     return tmp;
 }
 
@@ -305,13 +315,18 @@ int get_byte(int r, int x) {
     int tmp = 0;
     char s[3];
     int i, j;
-    if (x) r += reg_X;
+
+    if (x) {
+        r += reg_X;
+    }
+
     i = (r - start_add) * 2;
     j=0;
     s[j++] = memory[i++];
     s[j++] = memory[i++];
     s[2] = '\0';
     sscanf(s, "%X", &tmp);
+
     return tmp;
 }
 
@@ -319,8 +334,12 @@ void put_byte(int k, int r, int x) {
     int tmp = 0;
     char s[3];
     int i, j;
-    if (x) r += reg_X;
-    sprintf( s, "%02X", k );
+
+    if (x) {
+        r += reg_X;
+    }
+
+    sprintf(s, "%02X", k);
     i = (r - start_add) * 2;
     j=0;
     memory[i++] = s[j++];;
@@ -331,10 +350,17 @@ void put_value(int k, int r, int x) {
     int tmp = 0;
     char s[7];
     int i, j;
-    if (x) r += reg_X;
-    sprintf( s, "%06X", k );
+
+    if (x) {
+        r += reg_X;
+    }
+
+    sprintf(s, "%06X", k);
     i = (r - start_add) * 2;
-    for (j=0; j<6; j++) memory[i++] = s[j];
+
+    for (j = 0; j < 6; j++) {
+        memory[i++] = s[j];
+    }
 }
 
 void show_reg() {
@@ -346,9 +372,11 @@ void show_reg() {
 }
 
 // System Programming Lab Assignment 2
+// something run with this
 void s_run() {
     init_run();
     get_op();
+    show_reg();
 }
 
 int main() {
