@@ -102,7 +102,7 @@ int readline() { // read the input command
     int i = 0;
     int tmp = cMIN;
 
-    printf("SIC Simulator> ");
+    printf("SIC Simulator>");
 
     do {
         fgets(c_line, 30, stdin);
@@ -298,13 +298,13 @@ void get_op() {
     char t[5];
 
     s[0] = memory[curr_add];
-    s[1] = memory[curr_add+1];
+    s[1] = memory[curr_add + 1];
     s[2] = '\0';
     op = lookup(s);
-    t[0] = memory[curr_add+2];
-    t[1] = memory[curr_add+3];
-    t[2] = memory[curr_add+4];
-    t[3] = memory[curr_add+5];
+    t[0] = memory[curr_add + 2];
+    t[1] = memory[curr_add + 3];
+    t[2] = memory[curr_add + 4];
+    t[3] = memory[curr_add + 5];
     t[4] = '\0';
 
     sscanf(t, "%X", &operand);
@@ -371,7 +371,7 @@ void put_byte(int k, int r, int x) {
 
     sprintf(s, "%02X", k);
     i = (r - start_add) * 2;
-    j=0;
+    j = 0;
     memory[i++] = s[j++];;
     memory[i++] = s[j++];;
 }
@@ -405,7 +405,127 @@ void show_reg() {
 // something wrong with this
 void s_run() {
     init_run();
-    get_op();
+
+    printf("*%X*", operand);
+
+    while (running) {
+        get_op();
+        printf("%X", operand);
+        printf("%d\n", op);
+
+        switch (op) {
+            case 0:
+                reg_A += get_value(operand, indexed);
+                break;
+            case 1:
+                reg_A &= get_value(operand, indexed);
+                break;
+            case 2:
+                if (reg_A > get_value(operand, indexed)) {
+                    reg_SW = gt;
+                } else if (reg_A < get_value(operand, indexed)) {
+                    reg_SW = lt;
+                } else {
+                    reg_SW = eq;
+                }
+                break;
+            case 3:
+                reg_A /= get_value(operand, indexed);
+                break;
+            case 4:
+                reg_PC = operand;
+                curr_add = (reg_PC - start_add) * 2;
+                break;
+            case 5:
+                if(reg_SW == eq) {
+                    reg_PC = operand;
+                    curr_add = (reg_PC - start_add) * 2;
+                }
+                break;
+            case 6:
+                if(reg_SW == gt) {
+                    reg_PC = operand;
+                    curr_add = (reg_PC - start_add) * 2;
+                }
+                break;
+            case 7:
+                if(reg_SW == lt) {
+                    reg_PC = operand;
+                    curr_add = (reg_PC - start_add) * 2;
+                }
+                break;
+            case 8:
+                reg_L = reg_PC;
+                reg_PC = operand;
+                curr_add = (reg_PC - start_add) * 2;
+                break;
+            case 9:
+                reg_A = get_value(operand, indexed);
+                break;
+            case 10:
+                reg_A = (reg_A & 16776960) | get_byte(operand, indexed);
+                break;
+            case 11:
+                reg_L = get_value(operand, indexed);
+                break;
+            case 12:
+                reg_X = get_value(operand, indexed);
+            case 13:
+                reg_A *= get_value(operand, indexed);
+                break;
+            case 14:
+                reg_A |= get_value(operand, indexed);
+                break;
+            case 15:
+                reg_A = reg_A;
+                break;
+            case 16:
+                if(reg_L == 0) {
+                    running = 0;
+                } else {
+                    reg_PC = reg_L;
+                    curr_add = (reg_PC - start_add) * 2;
+                }
+                break;
+            case 17:
+                put_value(reg_A, operand, indexed);
+                break;
+            case 18:
+                put_byte(reg_A, operand, indexed);
+                break;
+            case 19:
+                put_value(reg_L, operand, indexed);
+                break;
+            case 20 :
+                put_value(reg_SW, operand, indexed);
+                break;
+            case 21:
+                put_value(reg_X, operand, indexed);
+                break;
+            case 22:
+                reg_A -= get_value(operand, indexed);
+                break;
+            case 23:
+                reg_SW = gt;
+                break;
+            case 24:
+                reg_X += 1;
+                if (reg_X > get_value(operand,indexed)) {
+                    reg_SW = gt;
+                } else if (reg_X < get_value(operand, indexed)) {
+                    reg_SW = lt;
+                } else {
+                    reg_SW = eq;
+                }
+                break;
+            case 25:
+                reg_A = reg_A;
+                break;
+            default:
+                break;
+        }
+    }
+
     show_reg();
 }
 
