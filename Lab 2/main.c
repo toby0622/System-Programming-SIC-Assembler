@@ -3,13 +3,43 @@
 #include <string.h>
 #include <math.h>
 
-#define cMIN (-1)
+#define cMIN -1
 #define cLOAD 0
 #define cSHOW 1
 #define cUNLOAD 2
 #define cEXIT 3
 #define cRUN 4
+#define cMAX 5
+
+#define oMIN -1
+#define oADD 0
+#define oAND 1
+#define oCOMP 2
+#define oDIV 3
+#define oJ 4
+#define oJEQ 5
+#define oJGT 6
+#define oJLT 7
+#define oJSUB 8
+#define oLDA 9
+#define oLDCH 10
+#define oLDL 11
+#define oLDX 12
+#define oMUL 13
+#define oOR 14
+#define oRD 15
+#define oRSUB 16
+#define oSTA 17
+#define oSTCH 18
+#define oSTL 19
+#define oSTSW 20
+#define oSTX 21
+#define oSUB 22
+#define oTD 23
+#define oTIX 24
+#define oWD 25
 #define oMAX 26
+
 #define specialByte 1024000
 
 FILE *f;
@@ -372,7 +402,7 @@ void show_reg() {
 }
 
 // System Programming Lab Assignment 2
-// something run with this
+// something wrong with this
 void s_run() {
     init_run();
     get_op();
