@@ -3,7 +3,7 @@
 #include <string.h>
 #include <math.h>
 
-#define cMIN -1
+#define cMIN (-1)
 #define cLOAD 0
 #define cSHOW 1
 #define cUNLOAD 2
@@ -11,7 +11,7 @@
 #define cRUN 4
 #define cMAX 5
 
-#define oMIN -1
+#define oMIN (-1)
 #define oADD 0
 #define oAND 1
 #define oCOMP 2
