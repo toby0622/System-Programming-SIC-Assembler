@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 #define cMIN (-1)
 #define cLOAD 0
@@ -9,7 +8,6 @@
 #define cUNLOAD 2
 #define cEXIT 3
 #define cRUN 4
-#define cMAX 5
 
 #define oMIN (-1)
 #define oADD 0
@@ -40,7 +38,9 @@
 #define oWD 25
 #define oMAX 26
 
-#define specialByte 1024000
+#define greaterThan 888
+#define lessThan 999
+#define equalTo 777
 
 FILE *f;
 char fname[20];
@@ -72,22 +72,6 @@ const char optab[26][3] = {"18", "40", "28", "24", "3C", "30", "34",
                            "44", "D8", "4C", "0C", "54", "14", "E8",
                            "10", "1C", "E0", "2C", "DC"};
 
-void memory_set() {
-    int s = specialByte;
-
-    memory = (char *)malloc(sizeof(char) * s);
-
-    if (memory) {
-        for (int i = 0; i < s; i++) {
-            memory[i] = 'X';
-        }
-
-        memory[s - 1] = '\0';
-    } else {
-        puts("Error Message: Memory Set Error");
-    }
-}
-
 int lookup(char *s) {
     for (int i = 0; i < oMAX; i++) {
         if (strcmp(optab[i], s) == 0) {
@@ -98,8 +82,8 @@ int lookup(char *s) {
     return (-1);
 }
 
-int readline() { // read the input command
-    int i = 0;
+int readline() {
+    int i;
     int tmp = cMIN;
 
     printf("SIC Simulator>");
@@ -107,43 +91,32 @@ int readline() { // read the input command
     do {
         fgets(c_line, 30, stdin);
         i = strlen(c_line);
-        c_line[i - 1] = '\0';
+        c_line[i-1] = '\0';
     } while (i <= 1);
 
     sscanf(c_line, "%s", cmd);
 
-    if (strcmp(cmd, s_command[0]) == 0) { // modify the input file name
+    if (strcmp(cmd, s_command[0]) == 0) {
         tmp = cLOAD;
-        strcpy(filename, (c_line + 5));
-        f = fopen(filename, "r");
-
-        if (!f) {
-            printf("No Such Filename %s\n", filename);
-            return (-100);
-        }
     } else if (strcmp(cmd, s_command[1]) == 0) {
         tmp = cSHOW;
     } else if (strcmp(cmd, s_command[2]) == 0) {
-        strcpy(filename, (c_line + 7));
-        f = fopen(filename, "r");
         tmp = cUNLOAD;
     } else if (strcmp(cmd, s_command[3]) == 0) {
         tmp = cEXIT;
-    } else if (strcmp(cmd, s_command[4]) == 0) {
+    } else if (strcmp( cmd, s_command[4]) == 0) {
         tmp = cRUN;
     }
 
     c_line[0] = '\0';
     cmd[0] = '\0';
+
     return tmp;
 }
 
-void rd_header() { // read the header
+void rd_header() {
     char tmp[7];
     int i, j, s;
-
-    memory_set();
-    fgets(o_line, 80, f);
 
     for (i = 7, j = 0; i < 13; i++, j++) {
         tmp[j] = o_line[i];
@@ -157,52 +130,53 @@ void rd_header() { // read the header
     }
 
     tmp[j] = '\0';
-    sscanf( tmp, "%x", &prog_len );
-    printf("Start Address: %x, Program Length: %x\n", start_add, prog_len);
-    loaded = 1;
-    mem_size = s;
+    sscanf(tmp, "%x", &prog_len);
+
+    s = prog_len * 2 + 1;
+    memory = (char *)malloc(sizeof(char) * s);
+
+    if (memory) {
+        for (i = 0; i < s; i++) {
+            memory[i] = 'X';
+        }
+
+        memory[s-1] = '\0';
+        loaded = 1;
+        mem_size = s;
+    } else {
+        printf("Loading Failed! (Memory Allocation Error)\n");
+    }
 }
 
-int rd_text() { // write the text record into the memory
+int rd_text() {
     char tmp[7];
     int i, j, l, s;
 
-    fgets(o_line, 80, f);
-
-    if (o_line[0] == 'E') {
-        return 0;
-    }
-
     for (i = 1, j = 0; i < 7; i++, j++) {
-        tmp[j] = o_line[i]; // obtain the starting address
+        tmp[j] = o_line[i];
     }
 
     tmp[j] = '\0';
     sscanf(tmp, "%x", &s);
 
     for (i = 7, j = 0; i < 9; i++, j++) {
-        tmp[j] = o_line[i]; // obtain the length
+        tmp[j] = o_line[i];
     }
 
     tmp[j] = '\0';
-    sscanf( tmp, "%x", &l );
+    sscanf(tmp, "%x", &l);
 
     l = 9 + l * 2;
 
-    int len = strlen(o_line);
-
-    for (i = 9, j = (s - start_add) * 2 + start_add; i < len; i++, j++) { // write into the memory
-        if(o_line[i] != '\n') {
-            memory[j] = o_line[i];
-        }
+    for (i = 9, j = (s - start_add) * 2; i < l; i++, j++) {
+        memory[j] = o_line[i];
     }
-
-    return 1;
 }
 
-void rd_end() { // jump to the next executable object code
+void rd_end() {
     char tmp[7];
-    int i, j;
+    int i;
+    int j;
 
     for (i = 1, j = 0; i < 7; i++, j++) {
         tmp[j] = o_line[i];
@@ -213,74 +187,114 @@ void rd_end() { // jump to the next executable object code
 }
 
 /* System Programming Lab Assignment 2 */
-void s_load() { // load the object code into memory
+void s_load() {
+    int i;
+
     if (loaded) {
-        puts("The Program Hasn't Been Released Yet!\n");
+        printf("ERROR: Object Program Already Loaded In The Memory!\n");
     } else {
-        rd_header(); // obtain the start address and the program length
-        while(rd_text()); // write the text record into the memory
-        rd_end();
-    }
-}
+        printf("     Filename>");
+        fgets(fname, 20, stdin);
+        i = strlen(fname);
+        fname[i - 1] = '\0';
+        f = fopen(fname, "r");
 
-char integer_to_character_string(int n) {
-    return (n >= 10) ? n - 10 + 'a' : n + '0';
-}
+        if (f == NULL) {
+            printf("ERROR : Failed To Open File!\n");
+        } else {
+            fgets(o_line, 80, f);
+            i = strlen(o_line);
+            o_line[i - 1] = '\0';
+            char prog_name[7];
 
-void dec_to_hex(int num) {
-    char ans[5] = {0};
+            if (o_line[0] == 'H') {
+                int j, k;
 
-    while (num) {
-        char c[2];
-        c[0] = integer_to_character_string(num % 16);
-        strcat(ans, c);
-        num /= 16;
-    }
+                for (k = 1, j = 0; k < 7; k++, j++) {
+                    prog_name[j] = o_line[k];
+                }
 
-    strrev(ans);
-    printf("%04s ", ans);
-}
-
-// System Programming Lab Assignment 2
-void s_show() { // display the memory status
-    int i, cur;
-
-    if (loaded) {
-        for (i = cur = start_add; i < 3.5 * pow(16, 3); ++i) {
-            if (i % 8 == 0) {
-                putchar(' ');
+                prog_name[j] = '\0';
+                rd_header();
             }
 
-            if (i % 32 == 0) {
-                printf("\n");
-                printf("%d ", i);
-                dec_to_hex(cur);
-                cur += 16;
+            fgets(o_line, 80, f);
+
+            // verify program name & length
+            printf("Program Name = [%s], Program Length = [%x]\n", prog_name, prog_len);
+
+            while (o_line[0] != 'E') {
+                int l;
+
+                l = strlen(o_line);
+                o_line[l - 1] = '\0';
+
+                rd_text();
+                fgets(o_line, 80, f);
             }
 
-            putchar(memory[i]);
+            rd_end();
+            loaded = 1;
+            o_line[0] = '\0';
+            printf("Load Successful!\n");
         }
-    }
 
-    putchar('\n');
+        fclose(f);
+    }
 }
 
 // System Programming Lab Assignment 2
-void s_unload() { // release all data structures
-    free(memory);
-    start_add = 0;
-    prog_len = 0;
-    start_add = 0;
-    first_add = 0;
-    curr_add = 0;
-    mem_size = 0;
-    loaded = 0;
-    op = 0;
-    indexed = 0;
-    operand = 0;
-    running = 0;
+void s_show() {
+    int i;
+    int j = 0;
 
-    memset(filename, '\0', sizeof(filename));
+    for (curr_add = first_add; curr_add < first_add + prog_len; curr_add += 16) {
+        printf("%x      ", curr_add);
+
+        for (i = 0 + j * 32; i < 8 + j * 32 && memory[i] != '\0'; i++) {
+            printf("%c", memory[i]);
+        }
+
+        printf("      ");
+
+        for (; i < 16 + j * 32 && memory[i] != '\0'; i++) {
+            printf("%c", memory[i]);
+        }
+
+        printf("      ");
+
+        for (; i < 24 + j * 32 && memory[i] != '\0'; i++) {
+            printf("%c", memory[i]);
+        }
+
+        printf("      ");
+
+        for (; i < 32 + j * 32 && memory[i] != '\0'; i++) {
+            printf("%c", memory[i]);
+        }
+
+        printf("\n");
+        j++;
+    }
+}
+
+// System Programming Lab Assignment 2
+void s_unload() {
+    if (loaded) {
+        fclose(f);
+        fname[0] = '\0';
+        o_line[0] = '\0';
+        free(memory);
+        prog_len = 0;
+        start_add = 0;
+        first_add = 0;
+        curr_add = 0;
+        mem_size = 0;
+        loaded = 0;
+        op = 0;
+        indexed = 0;
+        operand = 0;
+    }
 }
 
 void init_run() {
@@ -306,7 +320,6 @@ void get_op() {
     t[2] = memory[curr_add + 4];
     t[3] = memory[curr_add + 5];
     t[4] = '\0';
-
     sscanf(t, "%X", &operand);
 
     if (operand >= IKEY) {
@@ -351,17 +364,17 @@ int get_byte(int r, int x) {
     }
 
     i = (r - start_add) * 2;
-    j=0;
+    j = 0;
     s[j++] = memory[i++];
     s[j++] = memory[i++];
     s[2] = '\0';
     sscanf(s, "%X", &tmp);
+    printf("LDCH: r = [%X], x = [%d], tmp = [%c]\n", r, x, tmp);
 
     return tmp;
 }
 
 void put_byte(int k, int r, int x) {
-    int tmp = 0;
     char s[3];
     int i, j;
 
@@ -377,9 +390,10 @@ void put_byte(int k, int r, int x) {
 }
 
 void put_value(int k, int r, int x) {
-    int tmp = 0;
     char s[7];
     int i, j;
+
+    printf("<put_value> Operation (%X, %X, %X) Starts!\n", k, r, x);
 
     if (x) {
         r += reg_X;
@@ -391,6 +405,8 @@ void put_value(int k, int r, int x) {
     for (j = 0; j < 6; j++) {
         memory[i++] = s[j];
     }
+
+    printf("<put_value> Operation (%X, %X, %X) Finishes!\n", k, r, x);
 }
 
 void show_reg() {
@@ -402,84 +418,83 @@ void show_reg() {
 }
 
 // System Programming Lab Assignment 2
-// something wrong with this
 void s_run() {
     init_run();
 
-    printf("*%X*", operand);
-
     while (running) {
         get_op();
-        printf("%X", operand);
-        printf("%d\n", op);
+        // printf("%X", operand);
+        // printf("%d\n", op);
 
         switch (op) {
-            case 0:
+            case oMIN:
+                break;
+            case oADD:
                 reg_A += get_value(operand, indexed);
                 break;
-            case 1:
+            case oAND:
                 reg_A &= get_value(operand, indexed);
                 break;
-            case 2:
+            case oCOMP:
                 if (reg_A > get_value(operand, indexed)) {
-                    reg_SW = gt;
+                    reg_SW = greaterThan;
                 } else if (reg_A < get_value(operand, indexed)) {
-                    reg_SW = lt;
+                    reg_SW = lessThan;
                 } else {
-                    reg_SW = eq;
+                    reg_SW = equalTo;
                 }
                 break;
-            case 3:
+            case oDIV:
                 reg_A /= get_value(operand, indexed);
                 break;
-            case 4:
+            case oJ:
                 reg_PC = operand;
                 curr_add = (reg_PC - start_add) * 2;
                 break;
-            case 5:
-                if(reg_SW == eq) {
+            case oJEQ:
+                if(reg_SW == equalTo) {
                     reg_PC = operand;
                     curr_add = (reg_PC - start_add) * 2;
                 }
                 break;
-            case 6:
-                if(reg_SW == gt) {
+            case oJGT:
+                if(reg_SW == greaterThan) {
                     reg_PC = operand;
                     curr_add = (reg_PC - start_add) * 2;
                 }
                 break;
-            case 7:
-                if(reg_SW == lt) {
+            case oJLT:
+                if(reg_SW == lessThan) {
                     reg_PC = operand;
                     curr_add = (reg_PC - start_add) * 2;
                 }
                 break;
-            case 8:
+            case oJSUB:
                 reg_L = reg_PC;
                 reg_PC = operand;
                 curr_add = (reg_PC - start_add) * 2;
                 break;
-            case 9:
+            case oLDA:
                 reg_A = get_value(operand, indexed);
                 break;
-            case 10:
+            case oLDCH:
                 reg_A = (reg_A & 16776960) | get_byte(operand, indexed);
                 break;
-            case 11:
+            case oLDL:
                 reg_L = get_value(operand, indexed);
                 break;
-            case 12:
+            case oLDX:
                 reg_X = get_value(operand, indexed);
-            case 13:
+            case oMUL:
                 reg_A *= get_value(operand, indexed);
                 break;
-            case 14:
+            case oOR:
                 reg_A |= get_value(operand, indexed);
                 break;
-            case 15:
+            case oRD:
                 reg_A = reg_A;
                 break;
-            case 16:
+            case oRSUB:
                 if(reg_L == 0) {
                     running = 0;
                 } else {
@@ -487,38 +502,38 @@ void s_run() {
                     curr_add = (reg_PC - start_add) * 2;
                 }
                 break;
-            case 17:
+            case oSTA:
                 put_value(reg_A, operand, indexed);
                 break;
-            case 18:
+            case oSTCH:
                 put_byte(reg_A, operand, indexed);
                 break;
-            case 19:
+            case oSTL:
                 put_value(reg_L, operand, indexed);
                 break;
-            case 20 :
+            case oSTSW:
                 put_value(reg_SW, operand, indexed);
                 break;
-            case 21:
+            case oSTX:
                 put_value(reg_X, operand, indexed);
                 break;
-            case 22:
+            case oSUB:
                 reg_A -= get_value(operand, indexed);
                 break;
-            case 23:
-                reg_SW = gt;
+            case oTD:
+                reg_SW = greaterThan;
                 break;
-            case 24:
+            case oTIX:
                 reg_X += 1;
-                if (reg_X > get_value(operand,indexed)) {
-                    reg_SW = gt;
+                if (reg_X > get_value(operand, indexed)) {
+                    reg_SW = greaterThan;
                 } else if (reg_X < get_value(operand, indexed)) {
-                    reg_SW = lt;
+                    reg_SW = lessThan;
                 } else {
-                    reg_SW = eq;
+                    reg_SW = equalTo;
                 }
                 break;
-            case 25:
+            case oWD:
                 reg_A = reg_A;
                 break;
             default:
@@ -530,14 +545,12 @@ void s_run() {
 }
 
 int main() {
-    int comm = 0;
+    int comm;
 
     comm = readline();
 
     while (comm != cEXIT) {
         switch (comm) {
-            case -100:
-                break;
             case cLOAD: s_load();
                 break;
             case cSHOW: s_show();
